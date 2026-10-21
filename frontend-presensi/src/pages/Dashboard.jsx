@@ -78,14 +78,40 @@ export default function Dashboard({ stats, presensi, lembur, onGenerateAI, onSho
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="flex justify-between items-center mb-4 border-b pb-2">
             <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2"><Users size={16}/> Presensi Real-Time</h3>
-            <button onClick={() => onNavigate('presensi')} className="text-xs text-gray-500 border px-2 py-1 rounded">Lihat Semua</button>
+            <button onClick={() => onNavigate('presensi')} className="text-xs text-gray-500 border px-2 py-1 rounded hover:bg-gray-50">Lihat Semua</button>
           </div>
           <table className="w-full text-left text-xs">
-            <thead><tr className="text-gray-400 border-b"><th className="pb-2">ID LOG</th><th className="pb-2">Nama</th><th className="pb-2">Jam</th><th className="pb-2">Status</th></tr></thead>
+            <thead>
+              <tr className="text-gray-400 border-b">
+                <th className="pb-2">ID LOG</th>
+                <th className="pb-2">Nama</th>
+                <th className="pb-2">Jam Masuk</th>
+                <th className="pb-2">Status</th>
+              </tr>
+            </thead>
             <tbody>
-              {presensi.length > 0 ? presensi.slice(0,5).map(p => (
-                <tr key={p.id} className="border-b"><td className="py-2">LOG-{p.id}</td><td className="font-semibold text-gray-800">{p.nama}</td><td>{new Date(p.timestamp).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}</td><td><span className="text-green-600 bg-green-50 px-2 py-0.5 rounded text-[10px]">Masuk</span></td></tr>
-              )) : <tr><td colSpan="4" className="text-center py-4 text-gray-400">Belum ada data hari ini</td></tr>}
+              {presensi.length > 0 ? (
+                presensi.slice(0, 5).map((p, i) => (
+                  <tr key={i} className="border-b">
+                    <td className="py-2">{p.id_log}</td>
+                    <td className="font-semibold text-gray-800">{p.nama}</td>
+                    <td>{p.jam_masuk !== '-' ? p.jam_masuk : 'Belum Absen'}</td>
+                    <td>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        p.status === 'Selesai' ? 'bg-green-100 text-green-700' : 
+                        p.status === 'Bekerja' ? 'bg-blue-100 text-blue-700' : 
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {p.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="text-center py-4 text-gray-400">Belum ada data hari ini</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -93,14 +119,14 @@ export default function Dashboard({ stats, presensi, lembur, onGenerateAI, onSho
         <div className="bg-[#fce7f3] rounded-xl p-4 shadow-sm border border-pink-200">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-red-800 flex items-center gap-2"><AlertTriangle size={18}/> Perlu Perhatian</h3>
-            <button onClick={() => onNavigate('lembur')} className="text-xs text-red-600 font-semibold">Lihat Detail →</button>
+            <button onClick={() => onNavigate('lembur')} className="text-xs text-red-600 font-semibold hover:underline">Lihat Detail →</button>
           </div>
           <p className="text-xs text-red-700 mb-4">{stats.indikasi_anomali} Indikasi Lembur Fiktif terdeteksi oleh AI.</p>
           
           {lembur.filter(l => l.status_ai !== 'Normal').slice(0,1).map((l, i) => (
             <div key={i} className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm mb-2 border border-pink-100">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600">{l.nama ? l.nama.charAt(0) : '?'}</div>
+                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold">{l.nama ? l.nama.charAt(0) : '?'}</div>
                 <div>
                   <p className="text-sm font-bold text-gray-800">{l.nama || 'Unknown'} <span className="bg-red-500 text-white text-[9px] px-1 rounded ml-1">Fiktif</span></p>
                   <p className="text-xs text-gray-500">Aktivitas: {l.total_transaksi || 0} Transaksi</p>

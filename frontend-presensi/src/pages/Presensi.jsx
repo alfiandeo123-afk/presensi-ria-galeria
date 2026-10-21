@@ -42,8 +42,9 @@ export default function Presensi({ dataPresensi, onSimulasiTap }) {
             <FileText size={16} className="text-gray-500 mr-2" />
             <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="bg-transparent text-sm text-gray-700 focus:outline-none">
               <option value="Semua">Status</option>
-              <option value="Normal">Normal</option>
-              <option value="Fiktif">Fiktif</option>
+              <option value="Bekerja">Bekerja</option>
+              <option value="Selesai">Selesai</option>
+              <option value="Belum Absen">Belum Absen</option>
             </select>
           </div>
           <div className="flex items-center border border-gray-300 rounded-lg px-3 bg-white">
@@ -71,10 +72,11 @@ export default function Presensi({ dataPresensi, onSimulasiTap }) {
               </tr>
             </thead>
             <tbody>
-                            {filteredData.length > 0 ? filteredData.map((p, i) => (
+              {filteredData.length > 0 ? filteredData.map((p, i) => (
                 <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="p-4 text-gray-500">{p.id_log}</td>
                   <td className="p-4 font-semibold text-gray-800">{p.nama}</td>
+                  {/* Jam sudah diformat WIB dari backend, jadi langsung tampilkan */}
                   <td className="p-4 text-gray-600">{p.jam_masuk}</td>
                   <td className="p-4 text-gray-600">{p.jam_keluar}</td>
                   <td className="p-4">

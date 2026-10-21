@@ -2,16 +2,18 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { LayoutDashboard, Users, CalendarClock, Wallet, FileText, X, Upload, ChevronDown, LogOut } from 'lucide-react';
 
-// Import Halaman yang sudah dipecah
+// Import Halaman
 import Dashboard from './pages/Dashboard';
 import Presensi from './pages/Presensi';
+import Lembur from './pages/Lembur';
+import Shift from './pages/Shift';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activePage, setActivePage] = useState('presensi'); 
+  const [activePage, setActivePage] = useState('dashboard'); 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // States Data
@@ -20,21 +22,21 @@ function App() {
   const [presensi, setPresensi] = useState([]);
   const [lembur, setLembur] = useState([]);
   const [payroll, setPayroll] = useState([]);
-  const [shifts, setShifts] = useState([]);
   
+  // States Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ employee_id: '', nama: '', departemen: '' });
 
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [shiftDetail, setShiftDetail] = useState({ shift: '', karyawan: [] });
 
+  // Fungsi Fetch Data
   const fetchAll = () => {
     axios.get('http://localhost:3000/dashboard-stats').then(res => setStats(res.data)).catch(console.log);
     axios.get('http://localhost:3000/employees').then(res => setKaryawan(res.data)).catch(console.log);
     axios.get('http://localhost:3000/attendance').then(res => setPresensi(res.data)).catch(console.log);
     axios.get('http://localhost:3000/lembur').then(res => setLembur(res.data)).catch(console.log);
     axios.get('http://localhost:3000/payroll').then(res => setPayroll(res.data)).catch(console.log);
-    axios.get('http://localhost:3000/shifts').then(res => setShifts(res.data)).catch(console.log);
   };
 
   useEffect(() => { if(isLoggedIn) fetchAll(); }, [activePage, isLoggedIn]);
@@ -47,19 +49,45 @@ function App() {
     } catch (err) { setLoginError(err.response?.data?.message || 'Error'); }
   };
 
-  const handleLogout = (e) => { e.preventDefault(); setIsLoggedIn(false); setIsProfileOpen(false); };
-  const handleSubmitKaryawan = async (e) => { e.preventDefault(); await axios.post('http://localhost:3000/employees', formData); setIsModalOpen(false); fetchAll(); };
+  const handleLogout = (e) => { 
+    e.preventDefault(); 
+    setIsLoggedIn(false); 
+    setIsProfileOpen(false); 
+  };
+
+  const handleSubmitKaryawan = async (e) => { 
+    e.preventDefault(); 
+    await axios.post('http://localhost:3000/employees', formData); 
+    setIsModalOpen(false); 
+    setFormData({ employee_id: '', nama: '', departemen: '' });
+    fetchAll(); 
+    alert('Karyawan berhasil ditambahkan!');
+  };
   
   const simulasiIoT = async (type) => {
     try {
       await axios.post('http://localhost:3000/attendance/simulasi', { employee_id: 'EMP-001', type });
-      fetchAll(); alert(`Simulasi Tap ${type} Berhasil!`);
-    } catch (err) { alert(err.message); }
+      fetchAll(); 
+      alert(`Simulasi Tap ${type} Berhasil!`);
+    } catch (err) { alert('Gagal: ' + (err.response?.data?.error || err.message)); }
+  };
+
+  const resetPresensi = async () => {
+    if(window.confirm("Hapus semua data presensi hari ini untuk testing?")) {
+      try {
+        await axios.get('http://localhost:3000/attendance/reset');
+        fetchAll();
+        alert('Data presensi hari ini berhasil dihapus!');
+      } catch (err) { alert('Gagal reset: ' + err.message); }
+    }
   };
 
   const generateAI = async () => {
-    try { await axios.get('http://localhost:3000/shifts/generate'); fetchAll(); alert('AI berhasil membuat jadwal!'); } 
-    catch (err) { alert('Gagal: ' + err.message); }
+    try { 
+      await axios.get('http://localhost:3000/shifts/generate'); 
+      fetchAll(); 
+      alert('AI berhasil membuat jadwal shift mingguan!'); 
+    } catch (err) { alert('Gagal: ' + err.message); }
   };
 
   const showShiftDetail = async (shiftName) => {
@@ -67,17 +95,24 @@ function App() {
       const res = await axios.get(`http://localhost:3000/shifts/detail/${shiftName}`);
       setShiftDetail({ shift: shiftName, karyawan: res.data });
       setIsShiftModalOpen(true);
-    } catch (err) { console.log(err); }
+    } catch (err) { 
+      console.log(err); 
+      alert("Gagal memuat detail shift");
+    }
   };
 
   const today = new Date().toLocaleDateString('id-ID', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' });
 
+  // ==========================================
+  // HALAMAN LOGIN
+  // ==========================================
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#1e392a] relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/leaves.png')]"></div>
         <div className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-2xl shadow-2xl w-96 z-10 text-center">
           <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
+          <p className="text-sm text-gray-300 mb-6">Silahkan masuk ke sistem manajemen</p>
           {loginError && <p className="text-red-400 text-sm mb-4 bg-red-900/30 p-2 rounded">{loginError}</p>}
           <form onSubmit={handleLogin} className="space-y-4 text-left">
             <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-3 bg-white text-gray-800 rounded-lg focus:outline-none" required />
@@ -89,8 +124,13 @@ function App() {
     );
   }
 
+  // ==========================================
+  // HALAMAN UTAMA
+  // ==========================================
   return (
     <div className="flex h-screen bg-[#f4f7f6] font-sans">
+      
+      {/* SIDEBAR */}
       <aside className="w-64 bg-[#1e392a] text-white flex flex-col shadow-xl z-20">
         <div className="p-8 flex flex-col items-center border-b border-green-800">
           <h1 className="text-3xl font-serif font-bold tracking-widest text-white">Ria</h1>
@@ -116,13 +156,18 @@ function App() {
         </div>
       </aside>
 
+      {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        {/* HEADER */}
         <header className="bg-white p-4 shadow-sm flex justify-between items-center border-b z-30">
           <div className="flex items-center gap-4">
             <button className="text-gray-600 hover:bg-gray-100 p-2 rounded"><div className="w-5 h-0.5 bg-gray-600 mb-1"></div><div className="w-5 h-0.5 bg-gray-600 mb-1"></div><div className="w-5 h-0.5 bg-gray-600"></div></button>
             <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> API Connected</span>
             <div className="border border-gray-200 px-3 py-1 rounded text-xs text-gray-600 flex items-center gap-2 font-semibold"><CalendarClock size={14}/> {today}</div>
+            <button onClick={resetPresensi} className="bg-red-100 text-red-600 px-3 py-1 rounded text-xs font-semibold hover:bg-red-200 border border-red-200">Reset Tes</button>
           </div>
+          
           <div className="relative">
             <div onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded-lg transition">
               <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold">Y</div>
@@ -137,41 +182,15 @@ function App() {
           </div>
         </header>
 
+        {/* CONTENT AREA */}
         <div className="p-6 flex-1 overflow-y-auto">
           {activePage === 'dashboard' && <Dashboard stats={stats} presensi={presensi} lembur={lembur} onGenerateAI={generateAI} onShowShiftDetail={showShiftDetail} onNavigate={setActivePage} />}
           
           {activePage === 'presensi' && <Presensi dataPresensi={presensi} onSimulasiTap={simulasiIoT} />}
-
-          {activePage === 'shift' && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex justify-between mb-4">
-                <h2 className="font-bold text-lg">Jadwal Shift Otomatis</h2>
-                <button onClick={generateAI} className="bg-[#1e392a] text-white px-4 py-2 rounded-lg">Generate AI Shift</button>
-              </div>
-              <table className="w-full text-left border-collapse">
-                <thead><tr className="bg-gray-50 border-b"><th className="p-4">Nama</th><th className="p-4">Tanggal</th><th className="p-4">Shift</th><th className="p-4">Jam Kerja</th></tr></thead>
-                <tbody>
-                  {shifts.map(s => (
-                    <tr key={s.id} className="border-b"><td className="p-4 font-bold">{s.nama}</td><td className="p-4">{s.tanggal.split('T')[0]}</td><td className="p-4">{s.shift}</td><td className="p-4 text-gray-500 text-sm">{s.shift === 'Pagi' ? '08:00 - 16:00' : s.shift === 'Siang' ? '14:00 - 22:00' : '18:00 - 23:00'}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {activePage === 'lembur' && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="font-bold text-lg mb-4">AI Detection: Lembur Fiktif</h2>
-              <table className="w-full text-left border-collapse">
-                <thead><tr className="bg-gray-50 border-b"><th className="p-4">Nama</th><th className="p-4">Transaksi</th><th className="p-4">Skor AI</th><th className="p-4">Status</th></tr></thead>
-                <tbody>
-                  {lembur.map(l => (
-                    <tr key={l.id} className="border-b"><td className="p-4 font-bold">{l.nama}</td><td className="p-4">{l.total_transaksi || 0}</td><td className="p-4">{l.skor_anomali}</td><td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${l.status_ai === 'Normal' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{l.status_ai}</span></td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          
+          {activePage === 'lembur' && <Lembur dataLembur={lembur} />}
+          
+          {activePage === 'shift' && <Shift />}
 
           {activePage === 'payroll' && (
             <div className="bg-white rounded-xl shadow-sm p-6">
